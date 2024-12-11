@@ -38,7 +38,7 @@ import numpy as np
 from tqdm import tqdm
 
 from sklearn.feature_extraction.text import HashingVectorizer
-
+import psutil
 
 #%%
 def print_umap_tsne(k, fasta_folder):
@@ -244,7 +244,28 @@ def print_umap_tsne(k, fasta_folder):
     X_kmers = scaler.fit_transform(X_kmers)  # MaxAbsScaler works on sparse matrices directly
 
     # Step 2: Incremental PCA on the sparse matrix
-    chunk_size = 1000  # Adjust based on available memory
+    #chunk_size = 1000  # Adjust based on available memory
+    
+    # Calculate optimal chunk size at runtime
+    # Estimate the memory size of one dense row
+    sample_row_dense = X_kmers[0].toarray()
+    row_size_in_bytes = sample_row_dense.nbytes
+
+    # Get available memory in bytes
+    available_memory = psutil.virtual_memory().available
+
+    # Leave 20% of available memory as headroom
+    memory_headroom = 0.2
+    usable_memory = available_memory * (1 - memory_headroom)
+
+    # Calculate optimal chunk size
+    chunk_size = int(usable_memory // row_size_in_bytes)
+
+    # Set a minimum and maximum limit for chunk size
+    #chunk_size = max(100, min(chunk_size, 10000))  # Between 100 and 10,000 rows
+    print(f"Using pca chunk size: {chunk_size}")    
+
+    
     ipca_model = IncrementalPCA(n_components=50)
 
     # Fit IncrementalPCA in batches (convert chunks to dense temporarily)
