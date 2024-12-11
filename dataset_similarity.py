@@ -40,6 +40,19 @@ from tqdm import tqdm
 from sklearn.feature_extraction.text import HashingVectorizer
 import psutil
 
+
+
+import holoviews as hv
+from holoviews.operation.datashader import datashade, shade, dynspread
+import datashader as ds
+import pandas as pd
+#import numpy as np
+
+import panel as pn
+
+
+
+
 #%%
 def print_umap_tsne(k, fasta_folder):
     print(f"Processing with k={k} on folder={fasta_folder}")
@@ -288,6 +301,55 @@ def print_umap_tsne(k, fasta_folder):
     X_pca = np.vstack(X_pca)
 
     # Step 3: Plot the PCA results
+
+
+
+
+    hv.extension('bokeh')  # Enables interactive plots with the Bokeh backend
+
+    # Assuming X_pca and k are already defined
+    data = pd.DataFrame({'PCA1': X_pca[:, 0], 'PCA2': X_pca[:, 1]})
+
+    # Convert the data to a HoloViews Points object
+    points = hv.Points(data, kdims=['PCA1', 'PCA2'])
+
+    # Use datashade to dynamically aggregate and render the points
+    interactive_plot = datashade(
+        points,
+        aggregator=ds.count(),
+        cmap=['lightblue', 'red']
+    )
+
+    # Optionally spread out sparse points for better visibility
+    interactive_plot = dynspread(interactive_plot, threshold=0.5, max_px=4)
+
+    # Customize plot options
+    interactive_plot = interactive_plot.opts(
+        title=f"PCA k = {k}",
+        xlabel="PCA Component 1",
+        ylabel="PCA Component 2",
+        width=800,
+        height=600,
+        tools=['box_zoom', 'pan', 'wheel_zoom', 'reset'],
+        active_tools=['wheel_zoom']
+    )
+
+    # Show the plot in a notebook or save as an HTML file
+    hv.save(interactive_plot, f'PCA_plot_k{k}.html', backend='bokeh')  # Save to HTML
+    interactive_plot
+
+    pn.extension()
+
+    # Serve the interactive plot
+    pn.panel(interactive_plot).show(port=5006)
+
+
+
+
+
+
+
+
 
 
     #%%
